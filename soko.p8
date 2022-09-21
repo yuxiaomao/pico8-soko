@@ -3,9 +3,15 @@ version 38
 __lua__
 -- main
 
-
 -- functions
 function _init()
+  extcmd("set_title","soko")
+  _initmenu()
+  _update=_updatemenu
+  _draw=_drawmenu
+end
+
+function _menu2level()
   _initlevel()
   _update=_updatelevel
   _draw=_drawlevel
@@ -35,22 +41,17 @@ map1={env=map1_env,
 -->8
 -- inlevel
 
--- current states
-c_env={}
-c_obj={}
-c_mapsiz={}
-c_usrpos={}
-c_usrface=0 -- face orientation
+-- init, update, draw
 
 function _initlevel()
-  -- map select / todo: check if valid
+  -- load map
   c_env=map1.env
   c_obj=map1.obj
   c_mapsiz=map1.siz
   curr_cnt=map1.cnt -- count filled targets
   c_usrpos=map1.usr
   -- other var init
-  c_usrface=3
+  c_usrface=3 -- face orientation
 end
 
 function _updatelevel()
@@ -61,11 +62,11 @@ function _updatelevel()
 end
 
 function _drawlevel()
-  _drawall()
+  _drawlevelall()
 end
 
-
 -- custom functions
+
 function iswall(x,y)
   return (c_env[y][x] == 1)
 end
@@ -143,7 +144,7 @@ function _updatebtnpdpad()
 end
 
 -- clean and redraw all elements
-function _drawall()
+function _drawlevelall()
   cls()
   for y=1,c_mapsiz.y do
     for x=1,c_mapsiz.x do
@@ -170,10 +171,44 @@ end
 -->8
 -- menu
 
+-- menu item
+m_item={"start", "end"}
+m_pos={x=5,y=5}
+m_sel=1
+
+-- init, update, draw
+
+function _initmenu()
+  cls()
+end
+
 function _updatemenu()
+  if btnp(2) then
+    m_sel-=1
+    if (m_sel < 1) m_sel=1
+  end
+  if btnp(3) then
+    m_sel+=1
+    if (m_sel > #m_item) m_sel=#m_item
+  end
+  if btnp(5) then
+    if (m_sel == 1) then -- level
+      _menu2level()
+    end
+  end
 end
 
 function _drawmenu()
+  cls()
+  for i=1,#m_item do
+    if (m_sel == i) then
+      print("> "..m_item[i],
+            m_pos.x*8, (m_pos.y+i)*8)
+    else
+      print("  "..m_item[i],
+            m_pos.x*8, (m_pos.y+i)*8)
+    end
+  end
 end
 
 -- end menu
