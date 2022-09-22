@@ -132,6 +132,10 @@ function isoutsidelv(x,y)
           or (y > clv.siz.y))
 end
 
+function isbox(x,y)
+  return (clv.obj[y][x] > 0)
+end
+
 -- update only if any dpad button is pressed
 function _updatebtnpdpad()
   local nx=clv.usr.x
@@ -166,12 +170,17 @@ function _updatebtnpdpad()
   end
   -- next position is obj
   if (cant_move == 0
-      and clv.obj[ny][nx] > 0) then
+      and isbox(nx,ny)) then
     -- detect out of map
     if (isoutsidelv(nx2,ny2)) cant_move=1
     -- detect wall collision
     if (cant_move == 0
       and iswall(nx2,ny2)) then
+      cant_move=1
+    end
+    -- detect obj collision
+    if (cant_move == 0
+      and isbox(nx2,ny2)) then
       cant_move=1
     end
     -- detect if reach target
