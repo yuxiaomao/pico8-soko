@@ -2,10 +2,13 @@ pico-8 cartridge // http://www.pico-8.com
 version 38
 __lua__
 -- main
--- todo: replace cls by draw only necessary parts
 
 -- sprite flags:
 --   0-usr,1-wall,2-target,3-box
+
+-- global variables:
+--   mn: menu
+--   clv: current level
 
 -- functions
 function _init()
@@ -15,11 +18,23 @@ function _init()
   _draw=_drawmenu
 end
 
-function _menu2level(mn)
-  local lv=readlv(mn.lv)
+function _openlevel()
+  local lv=readlevel(mn.lv)
   _initlevel(lv)
   _update=_updatelevel
   _draw=_drawlevel
+end
+
+function _openlevelnext()
+  mn.lv+=1
+  local lv=readlevel(mn.lv)
+  _initlevel(lv)
+end
+
+function _openmenu()
+  _initmenu()
+  _update=_updatemenu
+  _draw=_drawmenu
 end
 
 -- end main
@@ -27,15 +42,20 @@ end
 -- levels
 
 -- read level from map editor
-function readlv(n)
+function readlevel(n)
   local lv={
+    -- will not changes
     x0=0, y0=0, -- pos in map
-    env={}, -- unmovable
-    obj={}, -- movable
     siz={x=16,y=16},
+    env={},
+    -- can changes
+    obj={},
     cnt=0, -- count filled targets
     usr={x=1,y=1},
+    -- in level only
     usrface=3, -- face orientation
+    updated=2, -- 0-no 1-yes 2-forceredrawall
+    win=0,
   }
   lv.x0=((n-1)%8)*16
   lv.y0=((n-1)\8)*16 -- int div
@@ -68,7 +88,6 @@ end
 -- end preset levels
 -->8
 -- inlevel
--- global var: clv
 
 -- init, update, draw
 
@@ -77,14 +96,27 @@ function _initlevel(lv)
 end
 
 function _updatelevel()
-  if (btnp(0) or btnp(1)
-      or btnp(2) or btnp(3)) then
+  if ((clv.win != 1) and
+      (btnp(0) or btnp(1)
+       or btnp(2) or btnp(3))) then
     _updatebtnpdpad()
+    clv.updated=1
+  end
+  if ((clv.win == 1) and
+      btnp(5)) then
+    if (mn.lv < mn.lvmax) then
+      _openlevelnext()
+    else
+      _openmenu()
+    end
   end
 end
 
 function _drawlevel()
-  _drawlevelall()
+  if (clv.updated >= 1) then
+    _drawlevelall()
+    clv.updated=0
+  end
 end
 
 -- custom functions
@@ -94,8 +126,10 @@ function iswall(x,y)
 end
 
 function isoutsidelv(x,y)
-  return ((x < 1) or (x > clv.siz.x)
-          or (y < 1) or (y > clv.siz.y))
+  return ((x < 1)
+          or (x > clv.siz.x)
+          or (y < 1)
+          or (y > clv.siz.y))
 end
 
 -- update only if any dpad button is pressed
@@ -156,6 +190,7 @@ function _updatebtnpdpad()
   end
   -- move usr and obj
   if (cant_move == 0) then
+    clv.updated=1
     clv.usr.x=nx
     clv.usr.y=ny
     if (is_push == 1) then
@@ -182,16 +217,22 @@ function _drawlevelall()
   end
   -- draw usr
   spr(32+clv.usrface,(clv.usr.x-1)*8,(clv.usr.y-1)*8)
-  -- draw win
+  -- draw win msg
   if (clv.cnt == 0) then
-    print("\#2you win!",0,0)
+    clv.win=1
+    print("\#2\^w\^tlevel clear!",5,5)
+    if (mn.lv < mn.lvmax) then
+      print("\#2press ❎ to next level",5,20)
+    else
+      print("\#2thanks for playing!",5,20)
+      print("\#2press ❎ to menu",5,26)
+    end
   end
 end
 
 -- end inlevel
 -->8
 -- menu
--- global var: mn
 
 -- init, update, draw
 
@@ -202,6 +243,7 @@ function _initmenu()
     sel=1,
     lvmax=5,
     lv=1,
+    updated=2, -- 0-no 1-yes 2-forceredrawall
   }
 end
 
@@ -210,16 +252,18 @@ function _updatemenu()
   if btnp(2) then
     mn.sel-=1
     if (mn.sel < 1) mn.sel=1
+    mn.updated=1
   end
   if btnp(3) then
     mn.sel+=1
     if (mn.sel > #mn.itm) mn.sel=#mn.itm
+    mn.updated=1
   end
   -- conditional action
   if (mn.sel == 1) then
     if btnp(5) then
       -- enter level
-      _menu2level(mn)
+      _openlevel()
     end
   elseif (mn.sel == 2) then
     -- next level
@@ -230,6 +274,7 @@ function _updatemenu()
         mn.lv=1
       end
       mn.itm[2]="level "..mn.lv
+      mn.updated=1
     end
     if (btnp(0)) then
       if (mn.lv > 1) then
@@ -238,11 +283,21 @@ function _updatemenu()
         mn.lv=mn.lvmax
       end
       mn.itm[2]="level "..mn.lv
+      mn.updated=1
     end
   end
 end
 
 function _drawmenu()
+  if (mn.updated >= 1) then
+    _drawmenuall()
+    mn.updated=0
+  end
+end
+
+-- custom functions
+
+function _drawmenuall()
   cls()
   for i=1,#mn.itm do
     if (mn.sel == i) then
