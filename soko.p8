@@ -3,7 +3,6 @@ version 38
 __lua__
 -- main
 -- todo: add true maps
--- todo?: undo??
 
 -- sprite flags:
 --   usr: 0-usr
@@ -13,10 +12,11 @@ __lua__
 --        (4) 5-door
 --   obj: (1) 3-box
 
-
 -- sfx:
 --   0: move
 --   1: level clear
+--   2: error
+--   3: undo move
 
 -- global variables:
 --   mn: menu
@@ -69,6 +69,7 @@ function readlevel(n)
     usrface=3, -- face orientation
     updated=2, -- 0-no 1-yes 2-forceredrawall
     win=0,
+    moves={},
   }
   lv.x0=((n-1)%8)*16
   lv.y0=((n-1)\8)*16 -- int div
@@ -121,11 +122,16 @@ function _initlevel(lv)
 end
 
 function _updatelevel()
-  if ((clv.win != 1) and
-      (btnp(0) or btnp(1)
-       or btnp(2) or btnp(3))) then
-    _updatebtnpdpad()
-    clv.updated=1
+  if (clv.win != 1) then
+    if (btnp(0) or btnp(1)
+        or btnp(2) or btnp(3)) then
+      _updatelevelmove()
+      clv.updated=1
+    end
+    if (btnp(4)) then
+      _updatelevelundo()
+      clv.updated=1
+    end
   end
   if ((clv.win == 1) and
       btnp(5)) then
@@ -222,11 +228,13 @@ function triggerbtn(x,y)
 end
 
 -- update only if any dpad button is pressed
-function _updatebtnpdpad()
-  local nx=clv.usr.x
-  local ny=clv.usr.y
-  local nx2=nx
-  local ny2=ny
+function _updatelevelmove()
+  local x0=clv.usr.x
+  local y0=clv.usr.y
+  local nx=x0
+  local ny=y0
+  local nx2=x0
+  local ny2=y0
   local cant_move=0
   local is_push=0
   if btnp(0) then -- left
@@ -250,7 +258,7 @@ function _updatebtnpdpad()
   if (isoutsidelv(nx,ny)) cant_move=1
   -- detect wall collision
   if (cant_move == 0
-      and (iswall(nx,ny))) then
+      and iswall(nx,ny)) then
     cant_move=1
   end
   -- next position is obj
@@ -285,8 +293,7 @@ function _updatebtnpdpad()
   -- move usr and obj
   if (cant_move == 0) then
     sfx(0)
-    local x0=clv.usr.x
-    local y0=clv.usr.y
+    add(clv.moves,clv.usrface)
     clv.usr.x=nx
     clv.usr.y=ny
     if (is_push == 1) then
@@ -298,6 +305,75 @@ function _updatebtnpdpad()
     triggerbtn(nx,ny)
     triggerbtn(x0,y0)
     clv.updated=1
+  end
+  if (cant_move == 1) then
+    sfx(2)
+  end
+end
+
+-- update level undo
+function _updatelevelundo()
+  -- last move
+  local lm=deli(clv.moves)
+  local llm=clv.moves[#clv.moves]
+  local x0=clv.usr.x
+  local y0=clv.usr.y
+  local nx=x0
+  local ny=y0
+  local nx2=x0
+  local ny2=y0
+  local is_push=0
+  if (lm != nil) then
+    -- undo if has last move
+    if (lm == 0) then
+      nx+=1
+      nx2-=1
+    end
+    if (lm == 1) then
+      nx-=1
+      nx2+=1
+    end
+    if (lm == 2) then
+      ny+=1
+      ny2-=1
+    end
+    if (lm == 3) then
+      ny-=1
+      ny2+=1
+    end
+    -- compute last face orientation
+    if (llm == nil) llm=0
+    clv.usrface=llm
+    -- no outside map no collision
+    -- detect if pushed
+    if (isbox(nx2,ny2)) then
+      is_push=1
+      -- compute remain targets
+      if (clv.env[ny2][nx2] != 2
+          and clv.env[y0][x0] == 2) then
+        clv.cnt-=1
+      end
+      if (clv.env[ny2][nx2] == 2
+          and clv.env[y0][x0] != 2) then
+        clv.cnt+=1
+      end
+    end
+    -- move usr and obj
+    sfx(3)
+    clv.usr.x=nx
+    clv.usr.y=ny
+    if (is_push == 1) then
+      clv.obj[y0][x0]=clv.obj[ny2][nx2]
+      clv.obj[ny2][nx2]=0
+    -- trigger btn after move
+      triggerbtn(nx2,ny2)
+    end
+    triggerbtn(nx,ny)
+    triggerbtn(x0,y0)
+    clv.updated=1
+  else
+    -- no action to undo
+    sfx(2)
   end
 end
 
@@ -327,6 +403,8 @@ function _drawlevelall()
   end
   -- draw usr
   spr(32+clv.usrface,(clv.usr.x-1)*8,(clv.usr.y-1)*8)
+  -- draw help msg
+  print("\#2🅾️ undo",99,2)
   -- draw win msg
   if (clv.cnt == 0) then
     clv.win=1
@@ -480,5 +558,7 @@ __map__
 0100000000010000000000000000000104000000000000000000000000000004010000000000000000000000000000010400000000000000000000000000000401000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0101010101010101010101010101010104040404040404040404040404040404010101010101010101010101010101010404040404040404040404040404040401010101010101010101010101010101000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
-000100000c05011050160301d0101f0001f0001f000000000000032000180001300011000110000f0000f0000f0000f0000f0000f000160001600016000160001600016000160001b0001f0003a0000100000000
+00030000130501b05023030240101f0001f0001f000000000000032000180001300011000110000f0000f0000f0000f0000f0000f000160001600016000160001600016000160001b0001f0003a0000100000000
 000800000a2500f25013250162501b250222502b23012200002000020000200002000020000200002000020000200002000020000200002000020000200002000020000200002000020000200002000020000200
+000800000327000200002000020000200002000020000200002000020000200002000020000200002000020000200002000020000200002000020000200002000020000200002000020000200002000020000200
+0003000013050100500e0000d00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

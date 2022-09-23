@@ -5,3 +5,4 @@ Implemented features:
 - Level selection in main menu
 - Button and doors
   - 1 button works for multiples doors of the same color
+- Undo moves in level
