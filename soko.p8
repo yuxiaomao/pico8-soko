@@ -2,6 +2,10 @@ pico-8 cartridge // http://www.pico-8.com
 version 38
 __lua__
 -- main
+-- todo: sound effect/music
+-- todo: add true maps
+-- todo: mecanics: press btn and door?
+-- todo?: undo??
 
 -- sprite flags:
 --   0-usr,1-wall,2-target,3-box
@@ -18,6 +22,7 @@ function _init()
   _draw=_drawmenu
 end
 
+-- open level mn.lv
 function _openlevel()
   local lv=readlevel(mn.lv)
   _initlevel(lv)
@@ -27,8 +32,7 @@ end
 
 function _openlevelnext()
   mn.lv+=1
-  local lv=readlevel(mn.lv)
-  _initlevel(lv)
+  _openlevel()
 end
 
 function _openmenu()
@@ -270,13 +274,13 @@ function _updatemenu()
   end
   -- conditional action
   if (mn.sel == 1) then
+    -- enter level
     if btnp(5) then
-      -- enter level
       _openlevel()
     end
   elseif (mn.sel == 2) then
     -- next level
-    if (btnp(5) or btnp(1)) then
+    if (btnp(1)) then
       if (mn.lv < mn.lvmax) then
         mn.lv+=1
       else
@@ -285,6 +289,7 @@ function _updatemenu()
       mn.itm[2]="level "..mn.lv
       mn.updated=1
     end
+    -- previous level
     if (btnp(0)) then
       if (mn.lv > 1) then
         mn.lv-=1
@@ -293,6 +298,10 @@ function _updatemenu()
       end
       mn.itm[2]="level "..mn.lv
       mn.updated=1
+    end
+    -- enter level
+    if (btnp(5)) then
+      _openlevel()
     end
   end
 end
