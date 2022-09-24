@@ -1,5 +1,7 @@
 # Pico8-Soko : pico-8 based sokoban
 
+Play online at: [https://yuxiaomao.github.io/pico8-soko]
+
 Learning project
 
 Implemented features:
