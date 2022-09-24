@@ -292,7 +292,8 @@ function _updatelevelmove()
   -- move usr and obj
   if (cant_move == 0) then
     sfx(0)
-    add(clv.moves,clv.usrface)
+    add(clv.moves,
+        {face=clv.usrface,push=is_push})
     clv.usr.x=nx
     clv.usr.y=ny
     if (is_push == 1) then
@@ -321,31 +322,33 @@ function _updatelevelundo()
   local ny=y0
   local nx2=x0
   local ny2=y0
-  local is_push=0
   if (lm != nil) then
     -- undo if has last move
-    if (lm == 0) then
+    if (lm.face == 0) then
       nx+=1
       nx2-=1
     end
-    if (lm == 1) then
+    if (lm.face == 1) then
       nx-=1
       nx2+=1
     end
-    if (lm == 2) then
+    if (lm.face == 2) then
       ny+=1
       ny2-=1
     end
-    if (lm == 3) then
+    if (lm.face == 3) then
       ny-=1
       ny2+=1
     end
     -- compute last face orientation
-    if (llm == nil) llm=0
-    clv.usrface=llm
+    if (llm == nil) then
+      clv.usrface=lm.face
+    else
+      clv.usrface=llm.face
+    end
     -- no outside map no collision
     -- detect if pushed
-    if (isbox(nx2,ny2)) then
+    if (lm.push == 1) then
       is_push=1
       -- compute remain targets
       if (clv.env[ny2][nx2] != 2
@@ -361,7 +364,7 @@ function _updatelevelundo()
     sfx(3)
     clv.usr.x=nx
     clv.usr.y=ny
-    if (is_push == 1) then
+    if (lm.push == 1) then
       clv.obj[y0][x0]=clv.obj[ny2][nx2]
       clv.obj[ny2][nx2]=0
     -- trigger btn after move
