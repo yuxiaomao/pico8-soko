@@ -14,3 +14,10 @@ Implemented features:
 Devlopment tools:
 - pico-8 on Linux
 - gedit text editor
+
+Export in pico8:
+- binary
+  - `export -i 11 -s 4 -f soko.bin`
+- (html)
+  - use ctrl+7 to capture an label
+  - `export -f soko.html`
