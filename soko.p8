@@ -121,14 +121,16 @@ function _initlevel(lv)
 end
 
 function _updatelevel()
+  -- allow undo even if win
+  if (btnp(4)) then
+    _updatelevelundo()
+    clv.updated=1
+    clv.win=0
+  end
   if (clv.win != 1) then
     if (btnp(0) or btnp(1)
         or btnp(2) or btnp(3)) then
       _updatelevelmove()
-      clv.updated=1
-    end
-    if (btnp(4)) then
-      _updatelevelundo()
       clv.updated=1
     end
   end
